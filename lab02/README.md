@@ -2,25 +2,21 @@
 ### Топология
 ![](Схема1.png)
 
-###  Цели
+###  Цель
 
-  1. Настроить OSPF в офисе Москва
-  2. Разделить сеть на зоны
-  3. Настроить фильтрацию между зонами
+  1. Настроить OSPF для Underlay сети
+  
   
   
   Условия задания:
-  - маршрутизаторы R14-R15 находятся в зоне 0-backbone
-  - маршрутизаторы R12-R13 находятся в зоне 10. Дополнительно к маршрутам должны получать маршрут по умолчанию.
-  - Маршрутизатор R19 находится в зоне 101 и получает только маршрут по умолчанию.
-  - Маршрутизатор R20 находится в зоне 102 и получает все маршруты. кроме маршрутов до зоны 101.
+  - Настроить OSPF в Underlay сети для IP связанности между всеми сетевыми устройствами.
+  - Зафиксировать в документации  план работы, адресное пространство, схему сети, конфигурацию устройств
+  - Убедиться в наличии IP связанности между устройствами в OSFP домене
+  
 
 #### Часть 1.
 
-Для того, чтобы организовать Area 0 на R14-R15 необходимо добавить линк между этими маршрутизаторами. Также добавляю линк между R12-R13 для оптимизации трафика и повышения отказоустойчивости. 
-
-##### Измененный участок схемы офиса Москва с отображением деления на Area OSPF
-![](Схема2.png)
+Таблица адресации не претерпела ихменений с прошлой лабораторной работы, повторю для удобства. Также я нанесла адреса устройств Loopback0 на схему.
 
  Таблица адресации
 
@@ -61,244 +57,167 @@
 | Москва  | R20 | e0/2 | || |
 | Москва  | R20 | e0/3 | || |
  
-#### Часть 2. Настройка OSPF и фильтрации
 
-1. На R14 е1/0 и R15 е1/0 настроила OSPF Area 0
+#### Часть 2. Настройка OSPF.
 
-```
-R14(config)#router ospf 1
-R14(config-router)#passive-interface def
-R14(config-router)#no passive-interface Ethernet1/0
-R14(config-router)#int Ethernet1/0
-R14(config-if)#ip ospf 1 area 0
-```
-```
-R15#conf t
-R15(config)#router ospf 1
-R15(config-router)#passive-interface def
-R15(config-router)#no passive-interface Ethernet1/0
-R15(config-router)#int Ethernet1/0
-R15(config-if)#ip ospf 1 area 0
-R15(config-if)#^Z
-R15#
-```
-Между R14 и R15 установилось соседство  и заработал протокол OSPF
-```
-R14#sh ip ospf database
+Все устройства войдут в одну backbone area. Все причастные интерфейсы включу в Area 0.
 
-            OSPF Router with ID (10.1.0.14) (Process ID 1)
+Начну с leaf0
 
-                Router Link States (Area 0)
-
-Link ID         ADV Router      Age         Seq#       Checksum Link count
-10.1.0.14       10.1.0.14       228         0x80000002 0x00725A 1
-10.1.0.15       10.1.0.15       229         0x80000002 0x007059 1
-
-                Net Link States (Area 0)
-
-Link ID         ADV Router      Age         Seq#       Checksum
-10.1.1.9        10.1.0.14       228         0x80000001 0x000BD0
-```
-
-
-2.  На интерфейсах (R14 е0/0, e0/1)  (R15 е0/0, е0/1)  (R13 е0/2, е0/3 е1/0, е0/1, е0/0) (R12 е0/2, е0/3, e1/0, е0/0, е0/1)    настроен OSPF Area 10 . 
-
-Настройка OSPF на примере R14, R15 
-```
-R14(config)#
-R14(config)#router ospf 1
-R14(config-router)#no passive-interface Ethernet0/0
-R14(config-router)#no passive-interface Ethernet0/1
-R14(config-router)#int Ethernet0/0
-R14(config-if)#ip ospf 1 area 10
-R14(config-if)#int Ethernet0/1
-R14(config-if)#ip ospf 1 area 10
-R14(config-if)#^Z
-R14#
-```
-```
-R15>ena
-R15#conf t
-R15(config)#router ospf 1
-R15(config-router)#no passive-interface Ethernet0/0
-R15(config-router)#no passive-interface Ethernet0/1
-R15(config-router)#int Ethernet0/1
-R15(config-if)#ip ospf 1 area 10
-R15(config-if)#int Ethernet0/0
-R15(config-if)#ip ospf 1 area 10
-R15(config-if)#^Z
-R15#
-```
-Между роутерами сформировалось соседство. На примере R12, R13
-```
-R12#sh ip ospf nei
-
-Neighbor ID     Pri   State           Dead Time   Address         Interface
-10.1.0.13         1   FULL/BDR        00:00:38    10.1.1.22       Ethernet0/1
-10.1.0.13         1   FULL/BDR        00:00:39    10.1.1.18       Ethernet0/0
-10.1.0.13         1   FULL/BDR        00:00:31    10.1.1.14       Ethernet1/0
-10.1.0.15         1   FULL/DR         00:00:35    10.1.1.226      Ethernet0/3
-10.1.0.14         1   FULL/DR         00:00:31    10.1.1.194      Ethernet0/2
+1. Включила роутинг
 
 ```
+leaf0#conf t
+leaf0(config)#ip routing
 ```
-R13#sh ip ospf nei
-
-Neighbor ID     Pri   State           Dead Time   Address         Interface
-10.1.0.12         1   FULL/DR         00:00:39    10.1.1.17       Ethernet0/1
-10.1.0.12         1   FULL/DR         00:00:34    10.1.1.21       Ethernet0/0
-10.1.0.12         1   FULL/DR         00:00:32    10.1.1.13       Ethernet1/0
-10.1.0.14         1   FULL/DR         00:00:32    10.1.1.2        Ethernet0/3
-10.1.0.15         1   FULL/DR         00:00:33    10.1.1.130      Ethernet0/2
+2. Включила OSPF
 
 ```
-Area 10 имеет тип Normal. По условиям работы она должна получать дополнительно маршрут по умолчанию. Для этого на R14, который является ABR для Area 10 выполнила следующую настройку:
-```
-R14#conf t
-R14(config)#ip route 0.0.0.0 0.0.0.0 Null0
-R14(config)#router ospf 1
-R14(config-router)#default-information originate
-R14(config-router)#end
-R14#
-```
-В результате этих действий в Area 10 появился маршрут по умалчаниюю. На примере R12
-```
-R12#sh ip route
-
-Gateway of last resort is 10.1.1.194 to network 0.0.0.0
-
-O*E2  0.0.0.0/0 [110/1] via 10.1.1.194, 1d03h, Ethernet0/2
-      10.0.0.0/8 is variably subnetted, 16 subnets, 2 masks
-C        10.1.0.12/32 is directly connected, Loopback0
-O        10.1.1.0/30 [110/20] via 10.1.1.194, 4d22h, Ethernet0/2
-                     [110/20] via 10.1.1.22, 02:18:34, Ethernet0/1
-                     [110/20] via 10.1.1.18, 02:18:24, Ethernet0/0
-                     [110/20] via 10.1.1.14, 4d22h, Ethernet1/0
-O IA     10.1.1.8/30 [110/20] via 10.1.1.226, 4d22h, Ethernet0/3
-                     [110/20] via 10.1.1.194, 4d22h, Ethernet0/2
-C        10.1.1.12/30 is directly connected, Ethernet1/0
-L        10.1.1.13/32 is directly connected, Ethernet1/0
-C        10.1.1.16/30 is directly connected, Ethernet0/0
-L        10.1.1.17/32 is directly connected, Ethernet0/0
-C        10.1.1.20/30 is directly connected, Ethernet0/1
-L        10.1.1.21/32 is directly connected, Ethernet0/1
-O        10.1.1.128/30 [110/20] via 10.1.1.226, 4d22h, Ethernet0/3
-                       [110/20] via 10.1.1.22, 02:18:34, Ethernet0/1
-                       [110/20] via 10.1.1.18, 02:18:24, Ethernet0/0
-                       [110/20] via 10.1.1.14, 4d22h, Ethernet1/0
-O IA     10.1.1.136/30 [110/20] via 10.1.1.194, 4d22h, Ethernet0/2
-C        10.1.1.192/30 is directly connected, Ethernet0/2
-L        10.1.1.193/32 is directly connected, Ethernet0/2
-C        10.1.1.224/30 is directly connected, Ethernet0/3
-L        10.1.1.225/32 is directly connected, Ethernet0/3
-O IA     10.1.1.248/30 [110/20] via 10.1.1.226, 4d21h, Ethernet0/3
-      192.168.10.0/24 is variably subnetted, 2 subnets, 2 masks
-C        192.168.10.0/24 is directly connected, Ethernet0/0.10
-L        192.168.10.1/32 is directly connected, Ethernet0/0.10
-      192.168.20.0/24 is variably subnetted, 2 subnets, 2 masks
-C        192.168.20.0/24 is directly connected, Ethernet0/1.20
-L        192.168.20.254/32 is directly connected, Ethernet0/1.20
-R12#
-
-```
-
-3. По условиям Area 101 получает только дефолт. Для этого она должна иметь тип totally stub. Линки R14 e0/3 и R19 e0/0 настроила следующим образом
-```
-R19(config)#router ospf 1
-R19(config-router)#network 10.1.1.0 0.0.0.255 area 101 stub
-```
-```
-R14#conf t
-R14(config)#router ospf 1
-R14(config-router)#no passive-interface e0/3
-R14(config-router)#int e0/3
-R14(config-if)#ip ospf 1 area 101 stub no-summary
-```
-Area 101 сформировалась как totally stub Area
-```
-R14#sh run | sec ospf
- ip ospf 1 area 10
- ip ospf 1 area 10
- ip ospf 1 area 101
- ip ospf 1 area 0
 router ospf 1
- area 101 stub no-summary
- passive-interface default
- no passive-interface Ethernet0/0
- no passive-interface Ethernet0/1
- no passive-interface Ethernet0/3
- no passive-interface Ethernet1/0
- default-information originate
-```
-```
-R19#sh run | sec ospf
-router ospf 1
- area 101 stub
- network 10.1.1.0 0.0.0.255 area 101
+   passive-interface default
+   no passive-interface Ethernet1
+   no passive-interface Ethernet2
+   max-lsa 12000
 
 ```
-Таблица маршрутизации R19 не содержит никаких маршрутов извне, кроме дефолта
-```
-R19#sh ip route
+3. Настроила интерфейсы
 
-Gateway of last resort is 10.1.1.137 to network 0.0.0.0
+```
+leaf0#conf t
+leaf0(config)#router ospf 1
+leaf0(config-router-ospf)#int e1
+leaf0(config-if-Et1)#ip ospf area 0
+leaf0(config-if-Et1)#ip ospf network point-to-point
+leaf0(config-if-Et1)#int e2
+leaf0(config-if-Et2)#ip ospf area 0
+leaf0(config-if-Et2)#ip ospf network point-t
+leaf0(config-if-Et2)#
 
-O*IA  0.0.0.0/0 [110/11] via 10.1.1.137, 4d21h, Ethernet0/0
-      10.0.0.0/8 is variably subnetted, 3 subnets, 2 masks
-C        10.1.0.19/32 is directly connected, Loopback0
-C        10.1.1.136/30 is directly connected, Ethernet0/0
-L        10.1.1.138/32 is directly connected, Ethernet0/0
+leaf0#conf t
+leaf0(config)#int lo0
+leaf0(config-if-Lo0)#ip ospf area 0
+leaf0(config-if-Lo0)#
+
 ```
 
-4. По условиям задания Area 102 не должна получать маршрут до зоны 101, а именно маршрут до сети 10.1.1.136/30. Area 102 имеет тим Normal.  До настройки фильтрации ТМ на R20 содержит маршрут до Area 101:
-```
-R20#sh ip route
 
-Gateway of last resort is 10.1.1.250 to network 0.0.0.0
+4. Затем настроила ospf на spine1
 
-O*E2  0.0.0.0/0 [110/1] via 10.1.1.250, 00:17:49, Ethernet0/0
-      10.0.0.0/8 is variably subnetted, 10 subnets, 2 masks
-C        10.1.0.20/32 is directly connected, Loopback0
-O IA     10.1.1.0/30 [110/30] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.8/30 [110/20] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.12/30 [110/30] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.128/30 [110/20] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.136/30 [110/30] via 10.1.1.250, 00:00:09, Ethernet0/0
-O IA     10.1.1.192/30 [110/30] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.224/30 [110/20] via 10.1.1.250, 3d18h, Ethernet0/0
-C        10.1.1.248/30 is directly connected, Ethernet0/0
-L        10.1.1.249/32 is directly connected, Ethernet0/0
 ```
-Настроила фильтрацию на R15, так как он является ABR для Area 102.
-```
-R15#conf t
-R15(config)#ip prefix-list Area101 deny 10.1.1.136/30
-R15(config)#ip prefix-list Area101 permit 0.0.0.0/0 le 32
-R15(config)#do sh run | sec Area101
-ip prefix-list Area101 seq 5 deny 10.1.1.136/30
-ip prefix-list Area101 seq 10 permit 0.0.0.0/0 le 32
-R15(config)#router ospf 1
-R15(config-router)#area 102 filter-list prefix Area101 in
-R15(config-router)#^Z
-R15#
-```
-После настройки фильтрации маршрут до сети 10.1.1.136/30 исчез из ТМ.
-```
-R20#sh ip route
+spine1#conf t
+spine1(config)#router ospf 1
+spine1(config-router-ospf)#passive-i def
+spine1(config-router-ospf)#no passive-i e1
+spine1(config-router-ospf)#no passive-i e2
+spine1(config-router-ospf)#no passive-i e3
+spine1(config-router-ospf)#int e1
+spine1(config-if-Et1)#ip ospf area 0
+spine1(config-if-Et1)#ip ospf network point-
+spine1(config-if-Et1)#int e2
+spine1(config-if-Et2)#ip ospf area 0
+spine1(config-if-Et2)#ip ospf network point-
+spine1(config-if-Et1)#int e3
+spine1(config-if-Et2)#ip ospf area 0
+spine1(config-if-Et2)#ip ospf network point-
+spine1(config-if-Et2)#int lo0
+spine1(config-if-Lo0)#ip ospf area 0
+spine1(config-if-Lo0)#
 
-Gateway of last resort is 10.1.1.250 to network 0.0.0.0
-
-O*E2  0.0.0.0/0 [110/1] via 10.1.1.250, 00:15:43, Ethernet0/0
-      10.0.0.0/8 is variably subnetted, 9 subnets, 2 masks
-C        10.1.0.20/32 is directly connected, Loopback0
-O IA     10.1.1.0/30 [110/30] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.8/30 [110/20] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.12/30 [110/30] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.128/30 [110/20] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.192/30 [110/30] via 10.1.1.250, 3d18h, Ethernet0/0
-O IA     10.1.1.224/30 [110/20] via 10.1.1.250, 3d18h, Ethernet0/0
-C        10.1.1.248/30 is directly connected, Ethernet0/0
-L        10.1.1.249/32 is directly connected, Ethernet0/0
 ```
-Configs can be found [here](configs/).
+
+5. Между leaf0 и spine1 сформировалось соседство. 
+
+```
+spine1#sh ip ospf nei
+Neighbor ID     Instance VRF      Pri State                  Dead Time   Address         Interface
+10.1.0.0        1        default  0   FULL                   00:00:37    10.2.1.0        Ethernet1
+```
+
+6. Далее настраиваю leaf2,leaf4, spine2.
+
+7. Все устройства установили необходимые соседства , все Lo0 отображены в ip ospf database
+
+```
+leaf0#sh ip ospf data
+
+            OSPF Router with ID(10.1.0.0) (Instance ID 1) (VRF default)
+
+
+                 Router Link States (Area 0.0.0.0)
+
+Link ID         ADV Router      Age         Seq#         Checksum Link count
+10.1.1.0        10.1.1.0        402         0x80000009   0xdf06   7
+10.1.2.0        10.1.2.0        377         0x80000008   0x18c5   7
+10.1.0.2        10.1.0.2        755         0x80000006   0x4af9   5
+10.1.0.4        10.1.0.4        364         0x80000006   0x8fa6   5
+10.1.0.0        10.1.0.0        1223        0x80000007   0x34e    5
+leaf0#
+
+```
+
+8. Пути до loopback0 всех устройств есть в таблице маршрутизации (на примере leaf0)
+
+```
+leaf0#sh ip rout
+
+
+Gateway of last resort is not set
+
+ C        10.0.0.0/32 is directly connected, Loopback0
+ O        10.0.0.2/32 [110/30] via 10.2.1.1, Ethernet1
+                               via 10.2.2.1, Ethernet2
+ O        10.0.0.4/32 [110/30] via 10.2.1.1, Ethernet1
+                               via 10.2.2.1, Ethernet2
+ O        10.0.1.0/32 [110/20] via 10.2.1.1, Ethernet1
+ O        10.0.2.0/32 [110/20] via 10.2.2.1, Ethernet2
+ C        10.1.0.0/32 is directly connected, Loopback1
+ C        10.2.1.0/31 is directly connected, Ethernet1
+ O        10.2.1.2/31 [110/20] via 10.2.1.1, Ethernet1
+ O        10.2.1.4/31 [110/20] via 10.2.1.1, Ethernet1
+ C        10.2.2.0/31 is directly connected, Ethernet2
+ O        10.2.2.2/31 [110/20] via 10.2.2.1, Ethernet2
+ O        10.2.2.4/31 [110/20] via 10.2.2.1, Ethernet2
+
+```
+
+#### Часть 3. Проверка IP связанности между устройствами в OSFP домене.
+
+Leaf0, leaf2, leaf4 пингуют друг друга
+
+leaf0-leaf4
+```
+leaf0#ping 10.0.0.4
+
+PING 10.0.0.4 (10.0.0.4) 72(100) bytes of data.
+80 bytes from 10.0.0.4: icmp_seq=1 ttl=63 time=37.8 ms
+80 bytes from 10.0.0.4: icmp_seq=2 ttl=63 time=37.3 ms
+80 bytes from 10.0.0.4: icmp_seq=3 ttl=63 time=37.2 ms
+80 bytes from 10.0.0.4: icmp_seq=4 ttl=63 time=28.6 ms
+80 bytes from 10.0.0.4: icmp_seq=5 ttl=63 time=35.9 ms
+
+```
+leaf0-leaf2
+```
+leaf0#ping 10.0.0.2
+PING 10.0.0.2 (10.0.0.2) 72(100) bytes of data.
+80 bytes from 10.0.0.2: icmp_seq=1 ttl=63 time=29.1 ms
+80 bytes from 10.0.0.2: icmp_seq=2 ttl=63 time=31.9 ms
+80 bytes from 10.0.0.2: icmp_seq=3 ttl=63 time=33.4 ms
+80 bytes from 10.0.0.2: icmp_seq=4 ttl=63 time=37.1 ms
+80 bytes from 10.0.0.2: icmp_seq=5 ttl=63 time=39.3 ms
+
+```
+leaf2-leaf4
+```
+leaf2#ping 10.0.0.4
+PING 10.0.0.4 (10.0.0.4) 72(100) bytes of data.
+80 bytes from 10.0.0.4: icmp_seq=1 ttl=63 time=47.3 ms
+80 bytes from 10.0.0.4: icmp_seq=2 ttl=63 time=45.8 ms
+80 bytes from 10.0.0.4: icmp_seq=3 ttl=63 time=55.3 ms
+80 bytes from 10.0.0.4: icmp_seq=4 ttl=63 time=53.1 ms
+80 bytes from 10.0.0.4: icmp_seq=5 ttl=63 time=38.8 ms
+
+
+```
+Файлы конфигурации можно посмотреть [здесь](configs/).
 ###  The End 

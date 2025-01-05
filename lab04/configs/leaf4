@@ -1,0 +1,66 @@
+leaf4#sh run
+! Command: show running-config
+! device: leaf4 (vEOS-lab, EOS-4.29.2F)
+!
+! boot system flash:/vEOS-lab.swi
+!
+no aaa root
+!
+transceiver qsfp default-mode 4x10G
+!
+service routing protocols model ribd
+!
+hostname leaf4
+!
+spanning-tree mode mstp
+!
+interface Ethernet1
+   description line_to_spine1
+   no switchport
+   ip address 10.2.1.4/31
+   bfd interval 100 min-rx 100 multiplier 3
+!
+interface Ethernet2
+   description line_to_spine2
+   no switchport
+   ip address 10.2.2.4/31
+   bfd interval 100 min-rx 100 multiplier 3
+!
+interface Ethernet3
+   isis enable 1
+!
+interface Ethernet4
+   isis enable 1
+!
+interface Ethernet5
+!
+interface Ethernet6
+!
+interface Ethernet7
+!
+interface Ethernet8
+!
+interface Loopback0
+   ip address 10.0.0.4/32
+!
+interface Loopback1
+   ip address 10.1.0.4/32
+!
+interface Management1
+!
+ip routing
+!
+router bgp 65001
+   router-id 10.0.0.4
+   timers bgp 3 9
+   maximum-paths 64
+   neighbor 10.2.1.5 remote-as 65001
+   neighbor 10.2.1.5 next-hop-self
+   neighbor 10.2.1.5 bfd
+   neighbor 10.2.2.5 remote-as 65001
+   neighbor 10.2.2.5 next-hop-self
+   neighbor 10.2.2.5 bfd
+   network 10.0.0.4/32
+!
+end
+leaf4#
